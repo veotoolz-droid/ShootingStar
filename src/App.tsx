@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { 
   Search, 
   Moon, 
@@ -10,7 +10,12 @@ import {
   Globe,
   Clock,
   ArrowRight,
-  Menu
+  Menu,
+  Settings,
+  Cpu,
+  Wifi,
+  WifiOff,
+  AlertCircle
 } from 'lucide-react'
 
 interface Source {
@@ -25,6 +30,39 @@ interface SearchResult {
   answer: string
   sources: Source[]
   timestamp: number
+  provider: string
+}
+
+type Provider = 'mock' | 'lmstudio' | 'openai' | 'custom'
+
+interface ProviderConfig {
+  name: string
+  url: string
+  model: string
+  apiKey?: string
+}
+
+const PROVIDERS: Record<Provider, ProviderConfig> = {
+  mock: {
+    name: 'Mock (Demo)',
+    url: '',
+    model: 'mock'
+  },
+  lmstudio: {
+    name: 'LM Studio',
+    url: 'http://localhost:1234/v1/chat/completions',
+    model: 'local-model'
+  },
+  openai: {
+    name: 'OpenAI',
+    url: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-4o-mini'
+  },
+  custom: {
+    name: 'Custom',
+    url: '',
+    model: ''
+  }
 }
 
 // Mock AI responses with sources
@@ -53,6 +91,97 @@ This represents a significant evolution from traditional keyword-based search, m
   }
 }
 
+// Check if LM Studio is running
+const checkLMStudioConnection = async (): Promise<boolean> => {
+  try {
+    const response = await fetch('http://localhost:1234/v1/models', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+// Stream from LM Studio or other OpenAI-compatible API
+async function* streamLLMResponse(
+  query: string,
+  config: ProviderConfig,
+  onError: (msg: string) => void
+): AsyncGenerator<string, void, unknown> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  
+  if (config.apiKey) {
+    headers['Authorization'] = `Bearer ${config.apiKey}`
+  }
+
+  try {
+    const response = await fetch(config.url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful AI search assistant. Provide concise, accurate answers. When possible, cite sources or mention where information comes from. Be helpful but brief.'
+          },
+          {
+            role: 'user',
+            content: query
+          }
+        ],
+        stream: true,
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`API error: ${error}`)
+    }
+
+    const reader = response.body?.getReader()
+    if (!reader) throw new Error('No response body')
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6)
+          if (data === '[DONE]') return
+
+          try {
+            const parsed = JSON.parse(data)
+            const content = parsed.choices?.[0]?.delta?.content
+            if (content) {
+              yield content
+            }
+          } catch {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+  } catch (error) {
+    onError(error instanceof Error ? error.message : 'Unknown error')
+    throw error
+  }
+}
+
 function App() {
   const [query, setQuery] = useState('')
   const [isDark, setIsDark] = useState(false)
@@ -60,11 +189,17 @@ function App() {
   const [currentResult, setCurrentResult] = useState<SearchResult | null>(null)
   const [history, setHistory] = useState<SearchResult[]>([])
   const [showHistory, setShowHistory] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [displayedAnswer, setDisplayedAnswer] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [provider, setProvider] = useState<Provider>('mock')
+  const [customConfig, setCustomConfig] = useState<ProviderConfig>({ name: 'Custom', url: '', model: '' })
+  const [lmStudioConnected, setLmStudioConnected] = useState<boolean | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const abortRef = useRef<boolean>(false)
 
-  // Load history and theme from localStorage
+  // Load history, theme, and provider settings
   useEffect(() => {
     const savedHistory = localStorage.getItem('comet-search-history')
     if (savedHistory) {
@@ -75,35 +210,42 @@ function App() {
       setIsDark(true)
       document.documentElement.classList.add('dark')
     }
+    const savedProvider = localStorage.getItem('comet-provider') as Provider
+    if (savedProvider && PROVIDERS[savedProvider]) {
+      setProvider(savedProvider)
+    }
+    const savedCustom = localStorage.getItem('comet-custom-config')
+    if (savedCustom) {
+      setCustomConfig(JSON.parse(savedCustom))
+    }
   }, [])
 
-  // Save history
+  // Check LM Studio connection periodically
+  useEffect(() => {
+    if (provider !== 'lmstudio') return
+    
+    const check = async () => {
+      const connected = await checkLMStudioConnection()
+      setLmStudioConnected(connected)
+    }
+    
+    check()
+    const interval = setInterval(check, 5000)
+    return () => clearInterval(interval)
+  }, [provider])
+
+  // Save settings
   useEffect(() => {
     localStorage.setItem('comet-search-history', JSON.stringify(history))
   }, [history])
 
-  // Streaming text effect
   useEffect(() => {
-    if (!currentResult) {
-      setDisplayedAnswer('')
-      return
-    }
+    localStorage.setItem('comet-provider', provider)
+  }, [provider])
 
-    let index = 0
-    const text = currentResult.answer
-    setDisplayedAnswer('')
-    
-    const interval = setInterval(() => {
-      if (index < text.length) {
-        setDisplayedAnswer(text.slice(0, index + 1))
-        index += 2 // Speed up typing
-      } else {
-        clearInterval(interval)
-      }
-    }, 10)
-
-    return () => clearInterval(interval)
-  }, [currentResult?.id])
+  useEffect(() => {
+    localStorage.setItem('comet-custom-config', JSON.stringify(customConfig))
+  }, [customConfig])
 
   const toggleTheme = () => {
     setIsDark(!isDark)
@@ -111,33 +253,94 @@ function App() {
     localStorage.setItem('comet-theme', !isDark ? 'dark' : 'light')
   }
 
-  const handleSearch = async (e?: React.FormEvent) => {
+  const getCurrentConfig = (): ProviderConfig => {
+    if (provider === 'custom') return customConfig
+    return PROVIDERS[provider]
+  }
+
+  const handleSearch = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault()
     if (!query.trim() || isSearching) return
 
     setIsSearching(true)
     setCurrentResult(null)
+    setDisplayedAnswer('')
+    setError(null)
+    abortRef.current = false
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800))
+    const config = getCurrentConfig()
+    let fullAnswer = ''
 
-    const { answer, sources } = generateMockResponse(query)
-    const result: SearchResult = {
-      id: Date.now().toString(),
-      query: query.trim(),
-      answer,
-      sources,
-      timestamp: Date.now(),
+    try {
+      if (provider === 'mock') {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 800))
+        
+        const { answer, sources } = generateMockResponse(query)
+        fullAnswer = answer
+
+        // Simulate streaming
+        for (let i = 0; i < answer.length; i += 3) {
+          if (abortRef.current) break
+          setDisplayedAnswer(answer.slice(0, i + 3))
+          await new Promise(r => setTimeout(r, 10))
+        }
+
+        const result: SearchResult = {
+          id: Date.now().toString(),
+          query: query.trim(),
+          answer,
+          sources,
+          timestamp: Date.now(),
+          provider: config.name,
+        }
+        setCurrentResult(result)
+        setHistory(prev => [result, ...prev.filter(h => h.query !== result.query)].slice(0, 50))
+      } else {
+        // Real LLM streaming
+        const sources: Source[] = [
+          { title: `${config.name} Response`, url: '#', domain: provider === 'lmstudio' ? 'local-llm' : provider },
+        ]
+
+        const result: SearchResult = {
+          id: Date.now().toString(),
+          query: query.trim(),
+          answer: '',
+          sources,
+          timestamp: Date.now(),
+          provider: config.name,
+        }
+        setCurrentResult(result)
+
+        for await (const chunk of streamLLMResponse(query, config, setError)) {
+          if (abortRef.current) break
+          fullAnswer += chunk
+          setDisplayedAnswer(fullAnswer)
+        }
+
+        const finalResult: SearchResult = {
+          ...result,
+          answer: fullAnswer,
+        }
+        setCurrentResult(finalResult)
+        setHistory(prev => [finalResult, ...prev.filter(h => h.query !== finalResult.query)].slice(0, 50))
+      }
+    } catch (err) {
+      console.error('Search error:', err)
+    } finally {
+      setIsSearching(false)
     }
+  }, [query, isSearching, provider, customConfig])
 
-    setCurrentResult(result)
-    setHistory(prev => [result, ...prev.filter(h => h.query !== result.query)].slice(0, 50))
+  const stopSearch = () => {
+    abortRef.current = true
     setIsSearching(false)
   }
 
   const loadFromHistory = (result: SearchResult) => {
     setQuery(result.query)
     setCurrentResult(result)
+    setDisplayedAnswer(result.answer)
     setShowHistory(false)
   }
 
@@ -180,12 +383,33 @@ function App() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Provider indicator */}
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-xs">
+              <Cpu className="w-3.5 h-3.5" />
+              <span>{getCurrentConfig().name}</span>
+              {provider === 'lmstudio' && (
+                lmStudioConnected === true ? (
+                  <Wifi className="w-3 h-3 text-green-500" />
+                ) : lmStudioConnected === false ? (
+                  <WifiOff className="w-3 h-3 text-red-500" />
+                ) : null
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-2 rounded-lg transition-colors ${showSettings ? 'bg-secondary' : 'hover:bg-secondary'}`}
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+
             <button
               onClick={() => setShowHistory(!showHistory)}
               className={`p-2 rounded-lg transition-colors ${showHistory ? 'bg-secondary' : 'hover:bg-secondary'}`}
             >
               <History className="w-5 h-5" />
             </button>
+
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-secondary transition-colors"
@@ -229,16 +453,166 @@ function App() {
                     <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
                       {item.query}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {formatTime(item.timestamp)}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                        {item.provider}
+                      </span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatTime(item.timestamp)}
+                      </span>
+                    </div>
                   </button>
                 ))
               )}
             </div>
           </div>
         </aside>
+
+        {/* Settings Panel */}
+        {showSettings && (
+          <>
+            <div 
+              className="fixed inset-0 bg-black/20 z-30"
+              onClick={() => setShowSettings(false)}
+            />
+            <div className="fixed right-0 top-14 bottom-0 w-80 bg-background border-l border-border z-40 p-6 overflow-y-auto animate-slide-up">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-semibold text-lg">Settings</h2>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="p-2 rounded-lg hover:bg-secondary transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Provider Selection */}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    AI Provider
+                  </label>
+                  <div className="space-y-2">
+                    {(Object.keys(PROVIDERS) as Provider[]).map((key) => (
+                      <button
+                        key={key}
+                        onClick={() => setProvider(key)}
+                        className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${
+                          provider === key 
+                            ? 'border-violet-500 bg-violet-500/10' 
+                            : 'border-border hover:border-violet-500/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {key === 'lmstudio' && (
+                            lmStudioConnected === true ? (
+                              <Wifi className="w-4 h-4 text-green-500" />
+                            ) : lmStudioConnected === false ? (
+                              <WifiOff className="w-4 h-4 text-red-500" />
+                            ) : (
+                              <Cpu className="w-4 h-4" />
+                            )
+                          )}
+                          {key === 'mock' && <Sparkles className="w-4 h-4" />}
+                          {key === 'openai' && <Globe className="w-4 h-4" />}
+                          {key === 'custom' && <Settings className="w-4 h-4" />}
+                          <span className="font-medium">{PROVIDERS[key].name}</span>
+                        </div>
+                        {provider === key && (
+                          <div className="w-2 h-2 rounded-full bg-violet-500" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* LM Studio Instructions */}
+                {provider === 'lmstudio' && (
+                  <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm space-y-2">
+                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-medium">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>LM Studio Setup</span>
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                      <li>Download <a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">LM Studio</a></li>
+                      <li>Load a model (see recommendations below)</li>
+                      <li>Start the local server (port 1234)</li>
+                      <li>Ensure CORS is enabled in settings</li>
+                    </ol>
+                  </div>
+                )}
+
+                {/* Custom Provider Config */}
+                {provider === 'custom' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        API URL
+                      </label>
+                      <input
+                        type="text"
+                        value={customConfig.url}
+                        onChange={(e) => setCustomConfig({ ...customConfig, url: e.target.value })}
+                        placeholder="http://localhost:1234/v1/chat/completions"
+                        className="w-full px-3 py-2 bg-secondary rounded-lg text-sm outline-none focus:ring-2 focus:ring-violet-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Model Name
+                      </label>
+                      <input
+                        type="text"
+                        value={customConfig.model}
+                        onChange={(e) => setCustomConfig({ ...customConfig, model: e.target.value })}
+                        placeholder="local-model"
+                        className="w-full px-3 py-2 bg-secondary rounded-lg text-sm outline-none focus:ring-2 focus:ring-violet-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        API Key (optional)
+                      </label>
+                      <input
+                        type="password"
+                        value={customConfig.apiKey || ''}
+                        onChange={(e) => setCustomConfig({ ...customConfig, apiKey: e.target.value })}
+                        placeholder="sk-..."
+                        className="w-full px-3 py-2 bg-secondary rounded-lg text-sm outline-none focus:ring-2 focus:ring-violet-500/50"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Model Recommendations */}
+                <div className="pt-4 border-t border-border">
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    Recommended Models
+                  </label>
+                  <div className="space-y-2 text-sm">
+                    <div className="p-3 rounded-lg bg-secondary/50">
+                      <div className="font-medium">Qwen 2.5 (7B-14B)</div>
+                      <div className="text-xs text-muted-foreground">Best balance of speed and quality</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/50">
+                      <div className="font-medium">Llama 3.1 (8B)</div>
+                      <div className="text-xs text-muted-foreground">Fast, good for most queries</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/50">
+                      <div className="font-medium">Mistral Nemo (12B)</div>
+                      <div className="text-xs text-muted-foreground">Excellent reasoning, larger context</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/50">
+                      <div className="font-medium">Phi-4 (14B)</div>
+                      <div className="text-xs text-muted-foreground">Microsoft's best small model</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Overlay for mobile */}
         {showHistory && (
@@ -259,8 +633,13 @@ function App() {
                     <span className="gradient-text">What do you want to know?</span>
                   </h1>
                   <p className="text-muted-foreground text-lg">
-                    AI-powered search with cited sources
+                    AI-powered search with {provider === 'mock' ? 'demo mode' : getCurrentConfig().name}
                   </p>
+                  {provider === 'lmstudio' && lmStudioConnected === false && (
+                    <p className="text-sm text-amber-500 mt-2">
+                      LM Studio not detected. Make sure it's running on port 1234.
+                    </p>
+                  )}
                 </div>
 
                 <form onSubmit={handleSearch} className="w-full max-w-2xl">
@@ -328,15 +707,31 @@ function App() {
                       onChange={(e) => setQuery(e.target.value)}
                       className="flex-1 bg-transparent px-3 py-3 outline-none"
                     />
-                    <button
-                      type="submit"
-                      disabled={!query.trim() || isSearching}
-                      className="m-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium disabled:opacity-50"
-                    >
-                      {isSearching ? 'Searching...' : 'Search'}
-                    </button>
+                    {isSearching ? (
+                      <button
+                        type="button"
+                        onClick={stopSearch}
+                        className="m-1 px-4 py-2 bg-destructive text-destructive-foreground rounded-lg text-sm font-medium hover:opacity-90"
+                      >
+                        Stop
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={!query.trim()}
+                        className="m-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium disabled:opacity-50"
+                      >
+                        Search
+                      </button>
+                    )}
                   </div>
                 </form>
+
+                {error && (
+                  <div className="mb-4 p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+                    {error}
+                  </div>
+                )}
 
                 <div className="grid lg:grid-cols-3 gap-6">
                   {/* Answer */}
@@ -345,11 +740,14 @@ function App() {
                       <div className="flex items-center gap-2 mb-4">
                         <Sparkles className="w-4 h-4 text-violet-500" />
                         <span className="text-sm font-medium text-muted-foreground">Answer</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground ml-auto">
+                          {currentResult.provider}
+                        </span>
                       </div>
                       <div className="prose prose-neutral dark:prose-invert max-w-none">
                         <p className="whitespace-pre-line leading-relaxed">
                           {displayedAnswer}
-                          {displayedAnswer.length < currentResult.answer.length && (
+                          {isSearching && (
                             <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
                           )}
                         </p>
