@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Command, X, FileText, Globe, Settings, Moon, Sun, Plus, History, Keyboard } from 'lucide-react';
+import { Search, Command, X } from 'lucide-react';
 
 export interface CommandItem {
   id: string;
@@ -136,7 +136,7 @@ export function CommandPalette({ isOpen, onClose, commands, placeholder = "Type 
                 <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {category}
                 </div>
-                {items.map((cmd, idx) => {
+                {items.map((cmd) => {
                   const globalIdx = flatCommands.findIndex(c => c.id === cmd.id);
                   const isSelected = globalIdx === selectedIndex;
                   

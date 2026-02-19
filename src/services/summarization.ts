@@ -87,11 +87,11 @@ ${content.slice(0, 8000)}`; // Limit content length
     const summaryText = data.choices?.[0]?.message?.content || '';
     
     // Parse summary and key points
-    const lines = summaryText.split('\n').filter(l => l.trim());
-    const summary = lines.filter(l => !l.startsWith('-') && !l.startsWith('•')).join('\n\n');
+    const lines = summaryText.split('\n').filter((l: string) => l.trim());
+    const summary = lines.filter((l: string) => !l.startsWith('-') && !l.startsWith('•')).join('\n\n');
     const keyPoints = lines
-      .filter(l => l.startsWith('-') || l.startsWith('•'))
-      .map(l => l.replace(/^[-•]\s*/, '').trim())
+      .filter((l: string) => l.startsWith('-') || l.startsWith('•'))
+      .map((l: string) => l.replace(/^[-•]\s*/, '').trim())
       .slice(0, 5);
 
     return {
