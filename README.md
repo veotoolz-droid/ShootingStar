@@ -1,183 +1,350 @@
-# Comet Search v1.0 - Phase 1 Complete
+# 🌠 ShootingStar / Comet Search
 
-A Perplexity-style AI search interface with real web search, multiple AI providers (Local LLM + Kimi API), and intelligent search modes.
+> An AI-native search browser with agentic capabilities, local-first architecture, and multi-model intelligence.
 
-## ✅ Phase 1 Features Implemented
+[![Electron](https://img.shields.io/badge/Electron-34.2.0-47848F?logo=electron)](https://electronjs.org/)
+[![React](https://img.shields.io/badge/React-18.2.0-61DAFB?logo=react)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.2.0-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![Playwright](https://img.shields.io/badge/Playwright-1.50.1-2EAD33?logo=playwright)](https://playwright.dev/)
 
-### 🔍 Real Web Search
-- **Brave Search API integration** — Live web results with real URLs
-- **Source enrichment** — Fetches and extracts content from actual webpages
-- **Real citations** — Every answer cites genuine sources with working links
-
-### 🧠 Three Search Modes
-| Mode | Description | Sources | Best For |
-|------|-------------|---------|----------|
-| **Quick** | Fast answers from 1-2 sources | 3 | Simple facts, quick lookups |
-| **Deep** | Comprehensive research | 10 | Complex topics, thorough analysis |
-| **Reasoning** | Step-by-step analysis | 5 | Problem-solving, comparisons |
-
-### 🤖 Triple Provider System
-
-#### 1. **100% Local** 
-- Uses your local LLM (LM Studio, Ollama, etc.)
-- Completely private — no data leaves your machine
-- Best for: Privacy-sensitive queries
-
-#### 2. **100% Kimi API**
-- Uses Moonshot's Kimi K2 model
-- Superior reasoning and longer context
-- Best for: Complex research, coding questions
-
-#### 3. **Hybrid** (Smart Routing)
-- **Quick mode** → Local LLM (fast, private)
-- **Deep/Reasoning** → Kimi API (better quality)
-- Best for: Balancing speed, cost, and quality
-
-### 🔐 API Key Management
-- Brave Search API key (required for web search)
-- Kimi API key (optional, for cloud features)
-- Secure localStorage with user consent
+![Comet Search Screenshot](./screenshots/hero.png)
 
 ---
 
-## 🚀 Getting Started
+## ✨ Features
+
+### 🔍 **AI-Powered Search**
+- **Real Web Search** - Brave Search API integration with live results
+- **Multiple Search Modes:**
+  - ⚡ **Quick** - Fast answers from 1-2 sources
+  - 📚 **Standard** - Balanced depth with 5 sources
+  - 🔬 **Deep Research** - Comprehensive analysis from 10+ sources
+  - 🧠 **Reasoning** - Step-by-step analytical answers
+
+### 🤖 **Agentic Browsing** (Electron)
+- **Playwright-powered browser automation**
+- Navigate, click, type, extract data from any website
+- Screenshot capture and page analysis
+- Form filling and automated workflows
+
+### 🧠 **Memory Bank** (Vector Storage)
+- **Local ChromaDB** - All data stays on your machine
+- **Semantic search** across past conversations
+- **Local embeddings** using Xenova transformers
+- **Persistent storage** with configurable location
+
+### 📑 **Multi-Tab Workspace**
+- Browser-like tab management
+- 4 tab types: Search, Browser, Research, Council
+- Tab persistence across sessions
+- Background task indicators
+
+### 🔬 **Deep Research Mode**
+- AI plans research strategy
+- Automatic sub-query generation
+- Iterative search with gap analysis
+- Comprehensive report synthesis
+- Progress tracking and downloadable reports
+
+### ⚡ **Model Council**
+- Run 2-3 AI models in parallel
+- Compare outputs side-by-side
+- Consensus analysis with agreement detection
+- Voting system for best answer
+- Support for Kimi API + Local LLMs
+
+### 📋 **Background Tasks**
+- Async job queue for long-running research
+- Progress notifications
+- Task persistence and recovery
+- Queue management with pause/resume
+
+---
+
+## 📸 Screenshots
+
+### Search Interface
+![Search](./screenshots/search.png)
+*Main search interface with mode selection*
+
+### Deep Research
+![Deep Research](./screenshots/deep-research.png)
+*Iterative research with automatic follow-up queries*
+
+### Model Council
+![Model Council](./screenshots/model-council.png)
+*Multi-model comparison with consensus analysis*
+
+### Tab Workspace
+![Tabs](./screenshots/tabs.png)
+*Multi-tab workspace with different tab types*
+
+### Settings
+![Settings](./screenshots/settings.png)
+*Provider configuration and folder settings*
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
-- Brave Search API key (free tier available)
-- (Optional) Kimi API key for cloud features
-- (Optional) Local LLM via LM Studio/Ollama
+- **Node.js 18+** - [Download](https://nodejs.org)
+- **Git** - [Download](https://git-scm.com)
 
-### 1. Get API Keys
-
-**Brave Search API** (Required):
-1. Go to [brave.com/search/api](https://brave.com/search/api)
-2. Sign up for free tier (2000 queries/month)
-3. Copy your API key
-
-**Kimi API** (Optional):
-1. Go to [platform.moonshot.cn](https://platform.moonshot.cn/)
-2. Create account and generate API key
-
-### 2. Install & Run
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/veotoolz-droid/ShootingStar.git
+cd ShootingStar
+
 # Install dependencies
 npm install
 
-# Start development server
-npm run dev
+# Run in development mode
+npm run electron:dev
 ```
 
-### 3. Configure Settings
+### First-Time Setup
 
-1. Click the **Settings** (gear) icon
-2. Enter your **Brave Search API key**
-3. Choose your **Provider Mode**:
-   - **Local Only**: Uses your local LLM
-   - **Kimi API**: Uses Moonshot's API
-   - **Hybrid**: Smart routing between both
-4. If using Local/Hybrid, ensure LM Studio is running on port 1234
+1. **Get API Keys:**
+   - **Brave Search** (free): https://brave.com/search/api/
+   - **Kimi API** (optional): https://platform.moonshot.cn/
+
+2. **Configure in Settings:**
+   - Click the ⚙️ gear icon
+   - Add your Brave API key (required)
+   - Add Kimi API key (optional, for cloud mode)
+   - Select download and memory bank folders
+
+3. **Choose Provider Mode:**
+   - 🏠 **Local Only** - Uses LM Studio/Ollama (100% free, private)
+   - ☁️ **Kimi API** - Uses Moonshot cloud API
+   - 🔄 **Hybrid** - Smart switching (local for quick, cloud for deep)
 
 ---
 
-## 📁 Project Structure
+## 🖥️ Usage Guide
+
+### Basic Search
+1. Type your query in the search box
+2. Select search mode (Quick/Standard/Deep/Reasoning)
+3. Press Enter or click Search
+4. View AI-generated answer with cited sources
+
+### Deep Research
+1. Switch to **Deep** mode
+2. Enter a complex research topic
+3. AI will:
+   - Generate research plan
+   - Execute multiple searches
+   - Identify knowledge gaps
+   - Follow up automatically
+   - Synthesize comprehensive report
+4. Download report as Markdown
+
+### Model Council
+1. Click **Council** tab or button
+2. Select 2-3 models to compare
+3. Enter your question
+4. View side-by-side responses
+5. See consensus analysis
+6. Vote for the best answer
+
+### Browser Automation
+1. Open a **Browser** tab
+2. Enter URL to navigate
+3. Use controls to:
+   - Click elements
+   - Fill forms
+   - Extract data
+   - Take screenshots
+4. AI can automate tasks via natural language
+
+### Background Tasks
+1. Start a long research query
+2. Click **Run in Background**
+3. Continue using other tabs
+4. Get notified when complete
+5. View results in Task Queue panel
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+Create `.env` file in project root:
+
+```env
+# Required
+VITE_BRAVE_API_KEY=your_brave_api_key
+
+# Optional (for cloud mode)
+VITE_KIMI_API_KEY=your_kimi_api_key
+
+# Optional (custom endpoints)
+VITE_LOCAL_LLM_URL=http://localhost:1234/v1/chat/completions
+```
+
+### Local LLM Setup (Free)
+
+1. **Download LM Studio:** https://lmstudio.ai
+2. **Download a model:**
+   - Qwen 2.5 14B (recommended)
+   - Llama 3.1 8B (faster)
+   - DeepSeek-R1 14B (reasoning)
+3. **Start server:**
+   - Load model in LM Studio
+   - Go to Developer tab
+   - Start server on port 1234
+   - Enable CORS
+4. **Select "Local" in Comet Settings**
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Electron App                          │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐ │
+│  │  React UI   │  │  Browser    │  │  Settings/Config│ │
+│  │  (Renderer) │  │  (Playwright)│  │  (Electron Store)│ │
+│  └──────┬──────┘  └──────┬──────┘  └─────────────────┘ │
+│         │                │                              │
+│         ▼                ▼                              │
+│  ┌─────────────────────────────────┐                   │
+│  │      Main Process (Node.js)     │                   │
+│  │  ┌──────────┐  ┌──────────────┐ │                   │
+│  │  │ChromaDB  │  │Memory Bank   │ │                   │
+│  │  │(Vectors) │  │(Embeddings)  │ │                   │
+│  │  └──────────┘  └──────────────┘ │                   │
+│  └─────────────────────────────────┘                   │
+│         │                                               │
+│         ▼                                               │
+│  ┌─────────────────────────────────┐                   │
+│  │   External APIs                 │                   │
+│  │   - Brave Search                │                   │
+│  │   - Kimi/Moonshot API           │                   │
+│  │   - Local LLM (LM Studio)       │                   │
+│  └─────────────────────────────────┘                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🛠️ Development
+
+### Available Scripts
+
+```bash
+# Development
+npm run dev              # Web dev server
+npm run electron:dev     # Electron dev mode
+
+# Building
+npm run build            # Build web app
+npm run electron:build   # Build Electron app
+
+# Production
+npm run electron:preview # Preview production build
+```
+
+### Project Structure
 
 ```
 comet-search/
+├── electron/              # Electron main process
+│   ├── main.ts           # Main entry point
+│   ├── preload.ts        # Preload script (IPC)
+│   ├── browser.ts        # Playwright automation
+│   └── memory.ts         # ChromaDB integration
 ├── src/
-│   ├── App.tsx              # Main application
-│   ├── services/
-│   │   └── search.ts        # Search logic, Brave API, Kimi integration
-│   ├── hooks/
-│   │   ├── useStreamingSearch.ts
-│   │   ├── useSearchHistory.ts
-│   │   └── useTheme.ts
-│   ├── main.tsx
-│   └── index.css
-├── package.json
-└── README.md
+│   ├── components/       # React components
+│   │   ├── TabManager.tsx
+│   │   ├── DeepResearch.tsx
+│   │   ├── ModelCouncil.tsx
+│   │   └── TaskQueue.tsx
+│   ├── services/         # Business logic
+│   │   ├── search.ts
+│   │   ├── deepResearch.ts
+│   │   ├── modelCouncil.ts
+│   │   ├── backgroundTasks.ts
+│   │   └── tabManager.ts
+│   ├── hooks/            # Custom React hooks
+│   └── App.tsx           # Main app component
+├── dist/                 # Web build output
+├── dist-electron/        # Electron build output
+└── release/              # Packaged apps
 ```
 
 ---
 
-## 🎯 How It Works
+## 🔒 Privacy & Security
 
-### Search Flow
-1. User enters query + selects mode
-2. **Brave Search API** fetches real web results
-3. Top results are **enriched** with full page content
-4. **Provider selector** chooses Local LLM or Kimi based on mode
-5. LLM generates **cited answer** using real sources
-6. Results stream in real-time
+- **Local-first**: All embeddings and memory stored locally
+- **No telemetry**: No data sent to developers
+- **API keys**: Stored in Electron's secure store
+- **Optional cloud**: Can run 100% offline with local LLM
+- **Browser isolation**: Playwright runs in sandboxed context
 
-### Provider Selection Logic (Hybrid Mode)
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Build fails with "Cannot find module"**
+```bash
+rm -rf node_modules package-lock.json
+npm install
 ```
-Quick query → Local LLM (fast, free)
-Deep research → Kimi API (better synthesis)
-Reasoning task → Kimi API (step-by-step logic)
+
+**ChromaDB errors**
+- Ensure memory bank folder has write permissions
+- Check disk space (embeddings use ~100MB per 1000 items)
+
+**Playwright browser won't start**
+```bash
+npx playwright install chromium
 ```
 
----
+**Local LLM connection failed**
+- Verify LM Studio is running on port 1234
+- Check CORS is enabled in LM Studio settings
+- Test with: `curl http://localhost:1234/v1/models`
 
-## 🛣️ Roadmap
-
-### ✅ Phase 1: Core Search (COMPLETE)
-- [x] Real web search (Brave API)
-- [x] Three search modes (Quick/Deep/Reasoning)
-- [x] Kimi API integration
-- [x] Provider mode switcher (Local/Kimi/Hybrid)
-- [x] Real citations from live sources
-
-### 🔄 Phase 2: Agentic Browser
-- [ ] Electron app with real browser tabs
-- [ ] Playwright browser automation
-- [ ] Tab context awareness
-- [ ] Multi-step task execution
-
-### 🔄 Phase 3: Deep Research
-- [ ] Iterative search loops
-- [ ] Multi-source synthesis
-- [ ] Report generation (PDF/Markdown)
-- [ ] Background task queue
-
-### 🔄 Phase 4: Intelligence
-- [ ] Local vector DB for memory
-- [ ] Model Council (multiple local models)
-- [ ] BrowseSafe security layer
-- [ ] Cross-session personalization
+**Kimi API errors**
+- Verify API key is correct
+- Check internet connection
+- Review rate limits on Moonshot dashboard
 
 ---
 
-## 🔒 Privacy
+## 📜 License
 
-- **Local mode**: Zero data leaves your machine
-- **Hybrid mode**: Only Deep/Reasoning queries go to Kimi
-- **API keys**: Stored locally in your browser
-- **Search history**: Stored locally, never uploaded
-
----
-
-## 🛠️ Tech Stack
-
-- React 18 + TypeScript
-- Vite
-- Tailwind CSS
-- Brave Search API
-- Kimi API (Moonshot)
-- Lucide Icons
-
----
-
-## 📝 License
-
-MIT License — feel free to use for personal or commercial projects.
+MIT License - See [LICENSE](./LICENSE) for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- Design inspired by [Perplexity AI](https://perplexity.ai)
-- Icons by [Lucide](https://lucide.dev)
-- Search powered by [Brave Search API](https://brave.com/search/api/)
-- Cloud AI by [Moonshot Kimi](https://platform.moonshot.cn/)
+- [Perplexity](https://perplexity.ai) - Design inspiration
+- [Brave Search](https://brave.com/search/api/) - Search API
+- [Moonshot AI](https://moonshot.cn) - Kimi API
+- [ChromaDB](https://chromadb.dev) - Vector database
+- [Playwright](https://playwright.dev) - Browser automation
+- [Xenova](https://xenova.ai) - Local embeddings
+
+---
+
+## 📧 Support
+
+- Issues: [GitHub Issues](https://github.com/veotoolz-droid/ShootingStar/issues)
+- Discussions: [GitHub Discussions](https://github.com/veotoolz-droid/ShootingStar/discussions)
+
+---
+
+<p align="center">
+  Made with 💜 by the ShootingStar team
+</p>
