@@ -1,42 +1,67 @@
-# Comet Search
+# Comet Search v1.0 - Phase 1 Complete
 
-A Perplexity-style AI search interface built with React, TypeScript, and Tailwind CSS.
+A Perplexity-style AI search interface with real web search, multiple AI providers (Local LLM + Kimi API), and intelligent search modes.
 
-![Comet Search Screenshot](./screenshot.png)
+## ✅ Phase 1 Features Implemented
 
-## Features
+### 🔍 Real Web Search
+- **Brave Search API integration** — Live web results with real URLs
+- **Source enrichment** — Fetches and extracts content from actual webpages
+- **Real citations** — Every answer cites genuine sources with working links
 
-- 🔍 **AI-Powered Search** - Natural language queries with intelligent responses
-- 📚 **Cited Sources** - Every answer includes verifiable sources
-- 💫 **Streaming Text** - Real-time response generation effect
-- 🌓 **Dark/Light Mode** - Automatic theme switching with persistence
-- 📜 **Search History** - Local storage of recent searches
-- 📱 **Responsive Design** - Works on desktop, tablet, and mobile
-- ⚡ **Fast & Lightweight** - Built with Vite for optimal performance
-- 🤖 **Multiple AI Providers** - Support for LM Studio, OpenAI, and custom APIs
+### 🧠 Three Search Modes
+| Mode | Description | Sources | Best For |
+|------|-------------|---------|----------|
+| **Quick** | Fast answers from 1-2 sources | 3 | Simple facts, quick lookups |
+| **Deep** | Comprehensive research | 10 | Complex topics, thorough analysis |
+| **Reasoning** | Step-by-step analysis | 5 | Problem-solving, comparisons |
 
-## Tech Stack
+### 🤖 Triple Provider System
 
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- Lucide Icons
+#### 1. **100% Local** 
+- Uses your local LLM (LM Studio, Ollama, etc.)
+- Completely private — no data leaves your machine
+- Best for: Privacy-sensitive queries
 
-## Getting Started
+#### 2. **100% Kimi API**
+- Uses Moonshot's Kimi K2 model
+- Superior reasoning and longer context
+- Best for: Complex research, coding questions
+
+#### 3. **Hybrid** (Smart Routing)
+- **Quick mode** → Local LLM (fast, private)
+- **Deep/Reasoning** → Kimi API (better quality)
+- Best for: Balancing speed, cost, and quality
+
+### 🔐 API Key Management
+- Brave Search API key (required for web search)
+- Kimi API key (optional, for cloud features)
+- Secure localStorage with user consent
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-
 - Node.js 18+
-- npm or yarn
+- Brave Search API key (free tier available)
+- (Optional) Kimi API key for cloud features
+- (Optional) Local LLM via LM Studio/Ollama
 
-### Installation
+### 1. Get API Keys
+
+**Brave Search API** (Required):
+1. Go to [brave.com/search/api](https://brave.com/search/api)
+2. Sign up for free tier (2000 queries/month)
+3. Copy your API key
+
+**Kimi API** (Optional):
+1. Go to [platform.moonshot.cn](https://platform.moonshot.cn/)
+2. Create account and generate API key
+
+### 2. Install & Run
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/comet-search.git
-cd comet-search
-
 # Install dependencies
 npm install
 
@@ -44,110 +69,115 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) to view it in your browser.
+### 3. Configure Settings
 
-### Build for Production
+1. Click the **Settings** (gear) icon
+2. Enter your **Brave Search API key**
+3. Choose your **Provider Mode**:
+   - **Local Only**: Uses your local LLM
+   - **Kimi API**: Uses Moonshot's API
+   - **Hybrid**: Smart routing between both
+4. If using Local/Hybrid, ensure LM Studio is running on port 1234
 
-```bash
-npm run build
-```
+---
 
-The build output will be in the `dist` folder.
-
-## AI Provider Setup
-
-### Option 1: Mock Mode (Default)
-No setup required. Uses pre-written responses for demo purposes.
-
-### Option 2: LM Studio (Recommended for Local)
-
-**Best models for this project:**
-
-| Model | Size | Speed | Quality | Best For |
-|-------|------|-------|---------|----------|
-| **Qwen 2.5 Instruct** | 7B-14B | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | Best overall balance |
-| **Llama 3.1 Instruct** | 8B | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | Fast, general queries |
-| **Mistral Nemo Instruct** | 12B | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | Complex reasoning |
-| **Phi-4 Instruct** | 14B | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | Microsoft's best |
-
-**Setup steps:**
-
-1. Download [LM Studio](https://lmstudio.ai)
-2. Download one of the recommended models above from HuggingFace
-3. Load the model in LM Studio
-4. Go to **Developer** tab → Start server on port 1234
-5. Enable **CORS** in server settings
-6. Select "LM Studio" in Comet Search settings
-
-### Option 3: OpenAI
-
-1. Get an API key from [OpenAI](https://platform.openai.com)
-2. Select "OpenAI" in Comet Search settings
-3. Add your API key (stored locally)
-
-### Option 4: Custom API
-
-Supports any OpenAI-compatible API endpoint:
-- Ollama (`http://localhost:11434/v1/chat/completions`)
-- LocalAI
-- Custom endpoints
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 comet-search/
 ├── src/
-│   ├── App.tsx          # Main application component
-│   ├── main.tsx         # Entry point
-│   └── index.css        # Global styles + Tailwind
-├── index.html           # HTML template
-├── package.json         # Dependencies
-├── tailwind.config.js   # Tailwind configuration
-├── tsconfig.json        # TypeScript configuration
-└── vite.config.ts       # Vite configuration
+│   ├── App.tsx              # Main application
+│   ├── services/
+│   │   └── search.ts        # Search logic, Brave API, Kimi integration
+│   ├── hooks/
+│   │   ├── useStreamingSearch.ts
+│   │   ├── useSearchHistory.ts
+│   │   └── useTheme.ts
+│   ├── main.tsx
+│   └── index.css
+├── package.json
+└── README.md
 ```
 
-## Model Recommendations Explained
+---
 
-### Qwen 2.5 (7B or 14B) ⭐ Top Pick
-- **Why:** Best instruction following, fast responses, excellent for search-style Q&A
-- **Download:** `qwen2.5-7b-instruct` or `qwen2.5-14b-instruct` on HuggingFace
-- **VRAM:** 7B needs ~6GB, 14B needs ~10GB
+## 🎯 How It Works
 
-### Llama 3.1 (8B)
-- **Why:** Very fast, good quality, widely supported
-- **Best for:** Quick queries, lower-end hardware
-- **VRAM:** ~6GB
+### Search Flow
+1. User enters query + selects mode
+2. **Brave Search API** fetches real web results
+3. Top results are **enriched** with full page content
+4. **Provider selector** chooses Local LLM or Kimi based on mode
+5. LLM generates **cited answer** using real sources
+6. Results stream in real-time
 
-### Mistral Nemo (12B)
-- **Why:** Excellent reasoning, 128k context window
-- **Best for:** Complex multi-step questions
-- **VRAM:** ~8GB
+### Provider Selection Logic (Hybrid Mode)
+```
+Quick query → Local LLM (fast, free)
+Deep research → Kimi API (better synthesis)
+Reasoning task → Kimi API (step-by-step logic)
+```
 
-### Phi-4 (14B)
-- **Why:** Microsoft's latest, great at following instructions
-- **Best for:** Technical queries, coding questions
-- **VRAM:** ~10GB
+---
 
-## Hardware Requirements
+## 🛣️ Roadmap
 
-| GPU VRAM | Recommended Models |
-|----------|-------------------|
-| 4-6 GB | Llama 3.1 8B, Qwen 2.5 7B |
-| 8-12 GB | Qwen 2.5 14B, Mistral Nemo |
-| 16+ GB | Multiple models, larger quants |
+### ✅ Phase 1: Core Search (COMPLETE)
+- [x] Real web search (Brave API)
+- [x] Three search modes (Quick/Deep/Reasoning)
+- [x] Kimi API integration
+- [x] Provider mode switcher (Local/Kimi/Hybrid)
+- [x] Real citations from live sources
 
-No GPU? Use mock mode or OpenAI API.
+### 🔄 Phase 2: Agentic Browser
+- [ ] Electron app with real browser tabs
+- [ ] Playwright browser automation
+- [ ] Tab context awareness
+- [ ] Multi-step task execution
 
-## Theming
+### 🔄 Phase 3: Deep Research
+- [ ] Iterative search loops
+- [ ] Multi-source synthesis
+- [ ] Report generation (PDF/Markdown)
+- [ ] Background task queue
 
-Colors are defined in `src/index.css` using CSS variables. Modify the `:root` and `.dark` selectors to customize the theme.
+### 🔄 Phase 4: Intelligence
+- [ ] Local vector DB for memory
+- [ ] Model Council (multiple local models)
+- [ ] BrowseSafe security layer
+- [ ] Cross-session personalization
 
-## License
+---
 
-MIT License - feel free to use this for personal or commercial projects.
+## 🔒 Privacy
 
-## Acknowledgments
+- **Local mode**: Zero data leaves your machine
+- **Hybrid mode**: Only Deep/Reasoning queries go to Kimi
+- **API keys**: Stored locally in your browser
+- **Search history**: Stored locally, never uploaded
+
+---
+
+## 🛠️ Tech Stack
+
+- React 18 + TypeScript
+- Vite
+- Tailwind CSS
+- Brave Search API
+- Kimi API (Moonshot)
+- Lucide Icons
+
+---
+
+## 📝 License
+
+MIT License — feel free to use for personal or commercial projects.
+
+---
+
+## 🙏 Acknowledgments
 
 - Design inspired by [Perplexity AI](https://perplexity.ai)
 - Icons by [Lucide](https://lucide.dev)
+- Search powered by [Brave Search API](https://brave.com/search/api/)
+- Cloud AI by [Moonshot Kimi](https://platform.moonshot.cn/)
