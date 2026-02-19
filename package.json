@@ -14,17 +14,26 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@mozilla/readability": "^0.6.0",
     "@xenova/transformers": "^2.17.2",
     "chromadb": "^1.10.4",
+    "hotkeys-js": "^4.0.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.0",
     "lucide-react": "^0.344.0",
     "playwright": "^1.50.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",
     "@types/react": "^18.2.56",
     "@types/react-dom": "^18.2.19",
+    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.18",
     "electron": "^34.2.0",
