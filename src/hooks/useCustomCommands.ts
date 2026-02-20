@@ -1,22 +1,19 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 export interface CustomCommand {
   id: string;
   name: string;
-  shortcut: string; // e.g., "/explain"
+  shortcut: string;
   prompt: string;
-  description?: string;
-  icon?: string;
+  description: string;
 }
-
-const STORAGE_KEY = 'comet-custom-commands';
 
 const DEFAULT_COMMANDS: CustomCommand[] = [
   {
     id: 'explain',
     name: 'Explain Like I\'m 5',
     shortcut: '/explain',
-    prompt: 'Explain the following in simple terms that a 5-year-old would understand:',
+    prompt: 'Explain this in simple terms that a 5-year-old would understand:',
     description: 'Simplify complex topics',
   },
   {
@@ -24,7 +21,7 @@ const DEFAULT_COMMANDS: CustomCommand[] = [
     name: 'Translate to Chinese',
     shortcut: '/translate',
     prompt: 'Translate the following to Chinese:',
-    description: 'Translate text to Chinese',
+    description: 'Translate content to Chinese',
   },
   {
     id: 'summarize',
@@ -35,92 +32,78 @@ const DEFAULT_COMMANDS: CustomCommand[] = [
   },
   {
     id: 'code',
-    name: 'Code Review',
+    name: 'Code Explanation',
     shortcut: '/code',
-    prompt: 'Review the following code and provide feedback on best practices, potential bugs, and improvements:',
-    description: 'Get code review feedback',
+    prompt: 'Explain this code in detail, including what each part does:',
+    description: 'Explain code snippets',
   },
   {
-    id: 'brainstorm',
-    name: 'Brainstorm Ideas',
-    shortcut: '/brainstorm',
-    prompt: 'Brainstorm creative ideas and approaches for the following topic:',
-    description: 'Generate creative ideas',
+    id: 'proscons',
+    name: 'Pros & Cons',
+    shortcut: '/proscons',
+    prompt: 'Analyze the pros and cons of the following:',
+    description: 'Get balanced analysis',
+  },
+  {
+    id: 'steps',
+    name: 'Step by Step',
+    shortcut: '/steps',
+    prompt: 'Break this down into clear step-by-step instructions:',
+    description: 'Get step-by-step guide',
   },
 ];
 
 export function useCustomCommands() {
   const [commands, setCommands] = useState<CustomCommand[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : DEFAULT_COMMANDS;
-    } catch {
-      return DEFAULT_COMMANDS;
-    }
+    const saved = localStorage.getItem('comet-custom-commands');
+    return saved ? JSON.parse(saved) : DEFAULT_COMMANDS;
   });
 
-  // Save to localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(commands));
-  }, [commands]);
+  const saveCommands = useCallback((newCommands: CustomCommand[]) => {
+    setCommands(newCommands);
+    localStorage.setItem('comet-custom-commands', JSON.stringify(newCommands));
+  }, []);
 
   const addCommand = useCallback((command: Omit<CustomCommand, 'id'>) => {
     const newCommand: CustomCommand = {
       ...command,
-      id: `cmd-${Date.now()}`,
+      id: Math.random().toString(36).substring(2, 9),
     };
-    setCommands(prev => [...prev, newCommand]);
-    return newCommand;
-  }, []);
+    saveCommands([...commands, newCommand]);
+  }, [commands, saveCommands]);
 
   const updateCommand = useCallback((id: string, updates: Partial<CustomCommand>) => {
-    setCommands(prev =>
-      prev.map(cmd => (cmd.id === id ? { ...cmd, ...updates } : cmd))
-    );
-  }, []);
+    saveCommands(commands.map(cmd => 
+      cmd.id === id ? { ...cmd, ...updates } : cmd
+    ));
+  }, [commands, saveCommands]);
 
   const deleteCommand = useCallback((id: string) => {
-    setCommands(prev => prev.filter(cmd => cmd.id !== id));
-  }, []);
-
-  const resetToDefaults = useCallback(() => {
-    setCommands(DEFAULT_COMMANDS);
-  }, []);
+    saveCommands(commands.filter(cmd => cmd.id !== id));
+  }, [commands, saveCommands]);
 
   const getCommandByShortcut = useCallback((shortcut: string): CustomCommand | undefined => {
-    return commands.find(cmd => cmd.shortcut.toLowerCase() === shortcut.toLowerCase());
+    return commands.find(cmd => cmd.shortcut === shortcut);
   }, [commands]);
 
-  const applyCommand = useCallback((shortcut: string, text: string): string => {
+  const applyCommand = useCallback((shortcut: string, content: string): string => {
     const command = getCommandByShortcut(shortcut);
-    if (!command) return text;
-    return `${command.prompt}\n\n${text}`;
+    if (!command) return content;
+    return `${command.prompt}\n\n${content}`;
   }, [getCommandByShortcut]);
 
-  const parseCommand = useCallback((query: string): { command?: CustomCommand; text: string } => {
-    const parts = query.trim().split(/\s+/);
-    if (parts.length > 0 && parts[0].startsWith('/')) {
-      const shortcut = parts[0].toLowerCase();
-      const command = getCommandByShortcut(shortcut);
-      if (command) {
-        return {
-          command,
-          text: parts.slice(1).join(' '),
-        };
-      }
-    }
-    return { text: query };
-  }, [getCommandByShortcut]);
+  const resetToDefaults = useCallback(() => {
+    saveCommands(DEFAULT_COMMANDS);
+  }, [saveCommands]);
 
   return {
     commands,
     addCommand,
     updateCommand,
     deleteCommand,
-    resetToDefaults,
     getCommandByShortcut,
     applyCommand,
-    parseCommand,
+    resetToDefaults,
   };
 }
 

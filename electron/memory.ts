@@ -1,12 +1,12 @@
 import { ChromaClient, Collection, IncludeEnum } from 'chromadb'
 import path from 'path'
 import fs from 'fs'
-import { pipeline, FeatureExtractionPipeline } from '@xenova/transformers'
+// import { pipeline, FeatureExtractionPipeline } from '@xenova/transformers'
 
 export class MemoryBank {
   private client: ChromaClient
   private collection: Collection | null = null
-  private embedder: FeatureExtractionPipeline | null = null
+  private embedder: any | null = null
   private isInitialized = false
 
   constructor(folderPath: string) {
@@ -14,7 +14,7 @@ export class MemoryBank {
     if (!fs.existsSync(folderPath)) {
       fs.mkdirSync(folderPath, { recursive: true })
     }
-    
+
     // Initialize ChromaDB client with persistent storage
     this.client = new ChromaClient({
       path: path.join(folderPath, 'chroma')
@@ -33,11 +33,17 @@ export class MemoryBank {
 
       // Initialize embedder using Xenova transformers (local, no API calls)
       // Using a lightweight model for embeddings
-      this.embedder = await pipeline(
-        'feature-extraction',
-        'Xenova/all-MiniLM-L6-v2',
-        { quantized: true } // Use quantized model for faster loading
-      )
+      try {
+        const { pipeline } = await import('@xenova/transformers');
+        this.embedder = await pipeline(
+          'feature-extraction',
+          'Xenova/all-MiniLM-L6-v2',
+          { quantized: true } // Use quantized model for faster loading
+        )
+      } catch (e) {
+        console.error("Failed to load embeddings model (transformers/onnx). Memory features disabled.", e)
+        this.embedder = null
+      }
 
       this.isInitialized = true
       console.log('Memory bank initialized successfully')
@@ -140,7 +146,7 @@ export class MemoryBank {
     try {
       const results = await this.collection.get({
         limit,
-        include: [IncludeEnum.Documents, IncludeEnum.Metadatas]
+        include: ['documents', 'metadatas'] as any
       })
 
       const items = results.ids.map((id, index) => ({
@@ -197,7 +203,7 @@ export class MemoryBank {
 
     try {
       const results = await this.collection.get({
-        include: [IncludeEnum.Metadatas]
+        include: ['metadatas'] as any
       })
 
       let conversations = 0
