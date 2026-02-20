@@ -15,9 +15,9 @@ export class MemoryBank {
       fs.mkdirSync(folderPath, { recursive: true })
     }
 
-    // Initialize ChromaDB client with persistent storage
+    // Initialize ChromaDB client (connects to server, default http://localhost:8000)
     this.client = new ChromaClient({
-      path: path.join(folderPath, 'chroma')
+      path: 'http://localhost:8000'
     })
   }
 
@@ -41,15 +41,16 @@ export class MemoryBank {
           { quantized: true } // Use quantized model for faster loading
         )
       } catch (e) {
-        console.error("Failed to load embeddings model (transformers/onnx). Memory features disabled.", e)
-        this.embedder = null
+        console.error("Failed to load embeddings model (transformers/onnx). Memory features disabled.", e);
+        this.embedder = null;
       }
 
       this.isInitialized = true
       console.log('Memory bank initialized successfully')
     } catch (error) {
-      console.error('Failed to initialize memory bank:', error)
-      throw error
+      console.warn('Failed to initialize memory bank (ChromaDB not running?):', error)
+      // Do not throw, just disable memory
+      this.isInitialized = false
     }
   }
 

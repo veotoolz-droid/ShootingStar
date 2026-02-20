@@ -16288,7 +16288,7 @@ class MemoryBank {
       fs$1.mkdirSync(folderPath, { recursive: true });
     }
     this.client = new ChromaClient({
-      path: path$1.join(folderPath, "chroma")
+      path: "http://localhost:8000"
     });
   }
   async initialize() {
@@ -16313,8 +16313,8 @@ class MemoryBank {
       this.isInitialized = true;
       console.log("Memory bank initialized successfully");
     } catch (error) {
-      console.error("Failed to initialize memory bank:", error);
-      throw error;
+      console.warn("Failed to initialize memory bank (ChromaDB not running?):", error);
+      this.isInitialized = false;
     }
   }
   async generateEmbedding(text) {
